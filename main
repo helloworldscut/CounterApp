@@ -1,0 +1,128 @@
+import kivy
+from kivy.app import App
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.textinput import TextInput
+from kivy.uix.slider import Slider
+import sqlite3
+  
+
+class CounterApp(App):
+    def build(self):
+        # 创建一个垂直布局
+        self.layout = BoxLayout(orientation='vertical')
+        # 从数据库中初始化计数器
+        self.counter = self.get_counter_from_db()
+        # 创建一个标签显示计数器的值
+        self.label = Label(text=str(self.counter), font_size='50sp')
+        # 创建一个按钮用于增加计数器
+        self.button_increment = Button(text='Increment', size_hint=(1, 0.2))
+        # 绑定按钮的点击事件
+        self.button_increment.bind(on_press=self.increment)
+        # 创建一个按钮用于减少计数器
+        self.button_decrement = Button(text='Decrement', size_hint=(1, 0.2))
+        # 绑定按钮的点击事件
+        self.button_decrement.bind(on_press=self.decrement)
+        # 创建一个按钮用于重置计数器
+        self.button_reset = Button(text='Reset', size_hint=(1, 0.2))
+        # 绑定按钮的点击事件
+        self.button_reset.bind(on_press=self.reset)
+        # 创建一个文本输入框用于输入跳转的数字
+        self.text_input = TextInput(hint_text='Jump To', size_hint=(1, 0.2))
+        # 创建一个按钮用于跳转到输入的数字
+        self.button_jump = Button(text='Jump', size_hint=(1, 0.2))
+        # 绑定按钮的点击事件
+        self.button_jump.bind(on_press=self.jump)
+        # 创建一个滑块用于调整计数器
+        self.slider = Slider(min=0, max=100, value=self.counter, size_hint=(1, 0.2))
+        # 绑定滑块的事件
+        self.slider.bind(value=self.slider_change)
+        # 将标签和按钮添加到布局中
+        self.layout.add_widget(self.label)
+        self.layout.add_widget(self.button_increment)
+        self.layout.add_widget(self.button_decrement)
+        self.layout.add_widget(self.button_reset)
+        self.layout.add_widget(self.text_input)
+        self.layout.add_widget(self.button_jump)
+        self.layout.add_widget(self.slider)
+        return self.layout
+
+    def increment(self, instance):
+        # 增加计数器的值
+        self.counter += 1
+        # 更新标签的文本
+        self.label.text = str(self.counter)
+        # 更新滑块的值
+        self.slider.value = self.counter
+        # 将更新后的计数器值保存到数据库
+        self.save_counter_to_db()
+
+    def decrement(self, instance):
+        # 减少计数器的值
+        self.counter -= 1
+        # 更新标签的文本
+        self.label.text = str(self.counter)
+        # 更新滑块的值
+        self.slider.value = self.counter
+        # 将更新后的计数器值保存到数据库
+        self.save_counter_to_db()
+
+    def reset(self, instance):
+        # 重置计数器的值为 0
+        self.counter = 0
+        # 更新标签的文本
+        self.label.text = str(self.counter)
+        # 更新滑块的值
+        self.slider.value = self.counter
+        # 将更新后的计数器值保存到数据库
+        self.save_counter_to_db()
+
+    def jump(self, instance):
+        try:
+            # 获取输入框中的值并将计数器的值设置为该值
+            value = int(self.text_input.text)
+            self.counter = value
+            # 更新标签的文本
+            self.label.text = str(self.counter)
+            # 更新滑块的值
+            self.slider.value = self.counter
+            # 将更新后的计数器值保存到数据库
+            self.save_counter_to_db()
+        except ValueError:
+            # 处理输入不是数字的情况
+            pass
+
+    def slider_change(self, instance, value):
+        # 当滑块的值发生变化时，更新计数器的值
+        self.counter = int(value)
+        # 更新标签的文本
+        self.label.text = str(self.counter)
+        # 将更新后的计数器值保存到数据库
+        self.save_counter_to_db()
+
+    def get_counter_from_db(self):
+        # 从数据库中获取计数器的初始值
+        conn = sqlite3.connect('counter.db')
+        c = conn.cursor()
+        c.execute('CREATE TABLE IF NOT EXISTS counter (value INTEGER)')
+        c.execute('SELECT value FROM counter')
+        result = c.fetchone()
+        conn.close()
+        if result:
+            return result[0]
+        else:
+            return 0
+
+    def save_counter_to_db(self):
+        # 将计数器的值保存到数据库
+        conn = sqlite3.connect('counter.db')
+        c = conn.cursor()
+        c.execute('CREATE TABLE IF NOT EXISTS counter (value INTEGER)')
+        c.execute('INSERT OR REPLACE INTO counter (value) VALUES (?)', (self.counter,))
+        conn.commit()
+        conn.close()
+
+
+if __name__ == "__main__":
+    CounterApp().run()
